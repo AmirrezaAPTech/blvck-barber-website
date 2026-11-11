@@ -113,24 +113,35 @@
 
   setLang(lang);
 
-  /* ---------------- Video: hero cut by width, reels play in view ---------------- */
+  /* ---------------- Video (ported from motion/modules/hero-video + service-video) ---------------- */
   var hv = qs('[data-hero-video]');
   if (hv && !reduced) {
-    var mob = window.matchMedia('(max-width: 767px)').matches;
-    hv.src = mob ? hv.dataset.srcMobile : hv.dataset.srcDesktop;
-    hv.addEventListener('playing', function () { hv.setAttribute('data-playing', ''); }, { once: true });
-    var p = hv.play(); if (p && p.catch) p.catch(function () {});
+    var src = window.matchMedia('(min-width: 768px)').matches ? hv.dataset.srcDesktop : hv.dataset.srcMobile;
+    hv.src = src; hv.muted = true;
+    var playHero = function () { var p = hv.play(); if (p && p.catch) p.catch(function () {}); };
+    hv.addEventListener('playing', function () { hv.setAttribute('data-playing', 'true'); });
+    playHero();
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) { if (es[0].isIntersecting) playHero(); else hv.pause(); }, { threshold: 0 }).observe(hv);
+    }
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) hv.pause(); else if (hv.getBoundingClientRect().bottom > 0) playHero();
+    });
   }
-  var reelsV = qsa('[data-reel-video]');
-  if (reelsV.length && 'IntersectionObserver' in window && !reduced) {
-    var io = new IntersectionObserver(function (es) {
+  var clips = qsa('[data-svc-video]');
+  if (clips.length && !reduced && 'IntersectionObserver' in window) {
+    var onScreen = new Set();
+    var playClip = function (v) { v.muted = true; var p = v.play(); if (p && p.catch) p.catch(function () {}); };
+    var clipIO = new IntersectionObserver(function (es) {
       es.forEach(function (e) {
-        var v = e.target;
-        if (e.isIntersecting) { v.preload = 'auto'; var pr = v.play(); if (pr && pr.catch) pr.catch(function () {}); }
-        else v.pause();
+        if (e.isIntersecting) { onScreen.add(e.target); playClip(e.target); }
+        else { onScreen.delete(e.target); e.target.pause(); }
       });
-    }, { threshold: 0.35 });
-    reelsV.forEach(function (v) { io.observe(v); });
+    }, { rootMargin: '200px 0px', threshold: 0 });
+    clips.forEach(function (v) { clipIO.observe(v); });
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) clips.forEach(function (v) { v.pause(); }); else onScreen.forEach(playClip);
+    });
   }
 
   /* ---------------- Motion (GSAP) ---------------- */
