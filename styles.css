@@ -483,3 +483,6 @@ address{font-style:normal}
 .founder__media img{transition:filter var(--dur-slow) var(--ease-editorial)}
 .member__media img,.member:hover .member__media img,.founder__media img,.hero__media img{filter:none}
 .invite__media img{filter:brightness(.85)}
+
+.card__video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1);transform-origin:center;transition:transform var(--dur-slow) var(--ease-editorial);background:var(--ink-raised)}
+.card:hover .card__video,.card:focus-within .card__video{transform:scale(1.05)}
